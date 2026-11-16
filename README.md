@@ -18,7 +18,7 @@ Aplicación web para registrar y gestionar tickets de soporte técnico. Permite 
 - npm, incluido con Node.js; los comandos de esta guía usan npm.
 - Backend Intelitickets iniciado y accesible. Por defecto, el proxy de Vite reenvía `/api` a `http://localhost:8080`.
 
-Consulta [el README del backend](../intelitickets/README.md) para iniciar la API y su base de datos.
+Consulta [el README del backend](https://github.com/agualdron/intelitickets) para iniciar la API y su base de datos.
 
 ## Variables de entorno
 
