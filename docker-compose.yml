@@ -38,12 +38,6 @@ services:
     image: agualdron/inteliticketsui:0.0.1
     depends_on:
       - backend
-    # build:
-    #   context: ../inteliticketsui
-    #   dockerfile: Dockerfile
-    #   args:
-    #     VITE_API_BASE_URL: ""
-    #     VITE_BASE_PATH: /
     ports:
       - "8081:80"
 
