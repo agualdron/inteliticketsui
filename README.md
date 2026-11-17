@@ -14,8 +14,8 @@ Aplicación web para registrar y gestionar tickets de soporte técnico. Permite 
 
 ## Requisitos previos
 
-- Node.js 20 LTS o posterior (Vite requiere Node.js 18 o posterior).
-- npm, incluido con Node.js; los comandos de esta guía usan npm.
+- Node.js 22.
+- Corepack, incluido con Node.js, para activar pnpm 9.15.9 según `package.json`.
 - Backend Intelitickets iniciado y accesible. Por defecto, el proxy de Vite reenvía `/api` a `http://localhost:8080`.
 
 Consulta [el README del backend](https://github.com/agualdron/intelitickets) para iniciar la API y su base de datos.
@@ -30,10 +30,10 @@ cp .env.example .env
 
 | Variable | Uso | Valor local sugerido |
 |---|---|---|
-| `VITE_API_BASE_URL` | Dirección base del backend. Vite usa este valor como destino de su proxy `/api`; el cliente Axios también puede usarlo como base URL. | `http://localhost:8080` |
-| `VITE_BASE_PATH` | Prefijo base para servir la aplicación, útil al publicarla bajo una ruta. | `/` |
+| `VITE_API_BASE_URL` | Dirección base de la API que usa Axios. Déjala vacía en Docker para que el navegador use el proxy Nginx `/api/`; en GitHub Pages debe ser el URL público del backend. | Vacío en Docker; URL pública del backend en Pages |
+| `VITE_BASE_PATH` | Prefijo con el que se sirve la aplicación. | `/` en Docker y `/intelitickets-ui/` en GitHub Pages |
 
-Para desarrollo local, se puede dejar `VITE_API_BASE_URL` vacío: la configuración de Vite usa `http://localhost:8080` como destino del proxy. Define el origin completo del backend si corre en otro host o puerto. Las variables con prefijo `VITE_` quedan incluidas en el código del navegador; no guardes secretos en ellas.
+Para desarrollo local, se puede dejar `VITE_API_BASE_URL` vacío: el cliente usa rutas relativas y el proxy de Vite reenvía `/api` a `http://localhost:8080`. Define el origin completo del backend si corre en otro host o puerto. Las variables con prefijo `VITE_` quedan incluidas en el código del navegador; no guardes secretos en ellas.
 
 ## Instalación y ejecución local
 
@@ -42,9 +42,10 @@ Clona el repositorio que contiene este proyecto y entra en su carpeta (sustituye
 ```bash
 git clone <URL_DEL_REPOSITORIO>
 cd <directorio-del-repositorio>/projects/inteliTickets/inteliticketsui
-npm install
+corepack enable
+pnpm install --frozen-lockfile
 cp .env.example .env
-npm run dev
+pnpm dev
 ```
 
 Vite mostrará la URL local, normalmente `http://localhost:5173`. Asegúrate de que el backend esté corriendo antes de usar las funciones que consultan la API.
@@ -53,10 +54,54 @@ Vite mostrará la URL local, normalmente `http://localhost:5173`. Asegúrate de 
 
 | Comando | Descripción |
 |---|---|
-| `npm run dev` | Inicia el servidor de desarrollo de Vite. |
-| `npm run build` | Comprueba los proyectos TypeScript y genera la versión de producción en `dist/`. |
-| `npm run preview` | Sirve localmente la compilación de `dist/` para revisarla. Ejecuta primero `npm run build`. |
-| `npm test` | Ejecuta las pruebas con Node.js para los archivos `tests/*.test.mjs`. |
+| `pnpm dev` | Inicia el servidor de desarrollo de Vite. |
+| `pnpm build` | Comprueba los proyectos TypeScript y genera la versión de producción en `dist/`. |
+| `pnpm preview` | Sirve localmente la compilación de `dist/` para revisarla. Ejecuta primero `pnpm build`. |
+| `pnpm test` | Ejecuta las pruebas con Node.js para los archivos `tests/*.test.mjs`. |
+
+## Ejecución con Docker Compose
+
+El Compose integrado conserva Postgres, ejecuta el backend desde la imagen pública `agualdron/intelitickets:0.0.1` y construye el frontend de este directorio. Desde `projects/inteliTickets/inteliticketsui`, inicia los servicios con:
+
+```bash
+CORS_ALLOWED_ORIGIN=http://localhost:8081 docker compose -f ../intelitickets/docker-compose.yml up --build -d
+```
+
+Abre `http://localhost:8081`. Nginx sirve la SPA y reenvía `/api/` al servicio Compose `backend` en el puerto `8080`. El frontend usa `VITE_API_BASE_URL` vacío y `VITE_BASE_PATH=/` en esta configuración. El backend recibe `CORS_ALLOWED_ORIGIN=http://localhost:8081` por defecto.
+
+El fragmento de integración correspondiente en `../intelitickets/docker-compose.yml` es:
+
+```yaml
+services:
+  backend:
+    image: agualdron/intelitickets:0.0.1
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ../inteliticketsui
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+        VITE_BASE_PATH: /
+    ports:
+      - "8081:80"
+```
+
+El Compose completo mantiene además Postgres y la configuración runtime del backend; el fragmento muestra los nombres de servicio y la imagen que conectan frontend, proxy Nginx y API.
+
+Para detener la topología:
+
+```bash
+CORS_ALLOWED_ORIGIN=http://localhost:8081 docker compose -f ../intelitickets/docker-compose.yml down
+```
+
+## Despliegue en GitHub Pages
+
+El workflow [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) compila la UI bajo `/intelitickets-ui/` y publica el contenido de `dist/` cuando hay un push a `main` o se ejecuta manualmente. En la configuración del repositorio, habilita GitHub Pages con **GitHub Actions** como fuente y define la variable `VITE_API_BASE_URL` con el URL público del backend. Esta variable forma parte del bundle publicado y no debe contener credenciales.
+
+El workflow instala dependencias desde `pnpm-lock.yaml`, genera `dist/404.html` para rutas profundas de la SPA y despliega el artefacto en `https://<usuario>.github.io/intelitickets-ui/`.
 
 ## Estructura principal
 
