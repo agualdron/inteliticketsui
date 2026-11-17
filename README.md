@@ -1,4 +1,6 @@
 # Intelitickets UI
+<img width="1400" height="784" alt="image" src="https://github.com/user-attachments/assets/3cb68c95-fc67-4ca5-a27a-2ced316e52d4" />
+
 
 Aplicación web para registrar y gestionar tickets de soporte técnico. Permite iniciar sesión o crear una cuenta, consultar y administrar tickets, asignar técnicos y revisar métricas según el rol del usuario. Se conecta con la API REST del backend **Intelitickets**, implementada con Spring Boot. En desarrollo, la API se espera en `http://localhost:8080`.
 
